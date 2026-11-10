@@ -244,10 +244,3 @@ document.querySelectorAll(".chip").forEach((b) =>
     else start({ kind: "orders", rows: Number(b.dataset.rows) }, "orders_sample.csv");
   }),
 );
-
-fetch("./parakh.wasm", { method: "HEAD" })
-  .then((r) => {
-    const n = Number(r.headers.get("content-length"));
-    if (n) $("wasm-size").textContent = `${Math.round(n / 1024)} KB`;
-  })
-  .catch(() => {});
