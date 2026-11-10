@@ -7,6 +7,7 @@
 Types, nulls, distinct counts, quantiles, histograms, top values and data-quality warnings for every column,
 from a single static binary written in Zig.
 
+[![Live demo](https://img.shields.io/badge/Live_demo-try_it_in_your_browser-f7a41d?style=flat)](https://samarthjaiswal.github.io/parakh/)
 [![CI](https://github.com/SAMARTHJAISWAL/parakh/actions/workflows/ci.yml/badge.svg)](https://github.com/SAMARTHJAISWAL/parakh/actions/workflows/ci.yml)
 [![Zig 0.17](https://img.shields.io/badge/zig-0.17.1-f7a41d?logo=zig&logoColor=white)](https://ziglang.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -14,6 +15,10 @@ from a single static binary written in Zig.
 <img src="docs/demo.png" alt="parakh profiling a 1,000,000-row orders CSV in 0.24 seconds" width="900">
 
 </div>
+
+**[Try it in your browser →](https://samarthjaiswal.github.io/parakh/)** Drop a CSV, TSV or `.gz` file, or run the
+built-in 1M-row sample. The page runs this same Zig code compiled to a 256 KB WebAssembly module, and a Web Worker
+streams your file to it in slices, so nothing is uploaded and even multi-gigabyte files stay at a few megabytes of memory.
 
 *Parakh* (परख) is Hindi for "to assess" or "to judge the quality of".
 
@@ -56,6 +61,9 @@ Memory doesn't depend on row count: the same command on a 3,000,000-row file pea
   `jq` and pipelines.
 - **A CI gate.** `--fail-on-warn` exits with status 2 when any warning fires, so a bad export fails
   the build.
+- **Runs in the browser too.** The [live demo](https://samarthjaiswal.github.io/parakh/) is the same engine
+  compiled to `wasm32-freestanding` with SIMD. A custom `std.Io.Reader` pulls input through `FileReaderSync`
+  inside a Web Worker, so the browser streams files exactly the way the CLI does.
 - **A single dependency-free binary** for Linux, macOS and Windows on x86-64 and ARM64.
   It is cross-compiled from one machine.
 
@@ -220,6 +228,7 @@ The sketches are standalone modules too: `parakh.sketch.hll`, `.kll`, `.topk`, `
 zig build test --summary all      # 50+ unit and end-to-end tests
 zig build -Doptimize=ReleaseFast  # binary in zig-out/bin
 zig build run -- data.csv         # build and run
+zig build wasm                    # browser demo in zig-out/web (serve it with any static server)
 ```
 
 The `tests/fixtures/` directory holds deliberately ugly CSVs: a BOM, CRLF, quoted delimiters, an

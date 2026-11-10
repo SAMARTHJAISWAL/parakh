@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>parakh · profile any CSV in your browser</title>
+<meta name="description" content="Drop a CSV and get types, nulls, distinct counts, quantiles, histograms and data-quality warnings for every column. Runs locally in WebAssembly; your file never leaves the tab.">
+<meta property="og:title" content="parakh · profile any CSV in your browser">
+<meta property="og:description" content="One pass, a few MB of memory, any file size. Zig compiled to WebAssembly; your data never leaves the tab.">
+<meta property="og:image" content="https://samarthjaiswal.github.io/parakh/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23f7a41d'/><path d='M8 22V10m5 12V14m5 8V8m5 14v-6' stroke='%230d1117' stroke-width='3' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="./"><span class="logo" aria-hidden="true"></span>parakh <span class="deva">परख</span></a>
+    <nav>
+      <a href="https://github.com/SAMARTHJAISWAL/parakh#how-it-works">How it works</a>
+      <a href="https://github.com/SAMARTHJAISWAL/parakh/releases/latest">Download CLI</a>
+      <a class="gh" href="https://github.com/SAMARTHJAISWAL/parakh">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Profile any CSV <em>without uploading it.</em></h1>
+    <p class="lede">Types, nulls, distinct counts, quantiles, histograms and data-quality warnings for every column, in one streaming pass.
+      This page runs the same Zig engine as the command-line tool, compiled to a <span id="wasm-size">260 KB</span> WebAssembly module.
+      Your file is read in slices and never leaves this tab.</p>
+  </section>
+
+  <section class="input" aria-label="Choose data">
+    <label id="drop" class="drop" for="file">
+      <input id="file" type="file" accept=".csv,.tsv,.txt,.gz,text/csv,text/tab-separated-values,application/gzip">
+      <span class="drop-icon" aria-hidden="true"></span>
+      <span class="drop-title">Drop a CSV, TSV or .gz file</span>
+      <span class="drop-sub">or click to choose · any size · stays on your device</span>
+    </label>
+    <div class="samples">
+      <span class="muted">No file handy?</span>
+      <button type="button" class="chip" data-sample="orders" data-rows="1000000">1M-row orders sample</button>
+      <button type="button" class="chip" data-sample="messy">Messy 12-row file</button>
+    </div>
+    <details class="options">
+      <summary>Options</summary>
+      <div class="opt-grid">
+        <label><input type="checkbox" id="opt-header" checked> First row is a header</label>
+        <label>Delimiter
+          <select id="opt-delim">
+            <option value="0">Auto-detect</option>
+            <option value="44">Comma ,</option>
+            <option value="59">Semicolon ;</option>
+            <option value="9">Tab</option>
+            <option value="124">Pipe |</option>
+          </select>
+        </label>
+        <label>Top values
+          <select id="opt-top"><option>3</option><option selected>5</option><option>10</option></select>
+        </label>
+      </div>
+    </details>
+  </section>
+
+  <section id="progress" class="progress" hidden aria-live="polite">
+    <div class="bar"><div id="bar-fill"></div></div>
+    <div class="progress-text"><span id="progress-label">Reading…</span><span id="progress-rate" class="muted"></span></div>
+  </section>
+
+  <section id="error" class="error" hidden role="alert"></section>
+
+  <section id="results" hidden>
+    <div class="summary" id="summary"></div>
+
+    <div class="toolbar">
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-view="columns">Columns</button>
+        <button role="tab" aria-selected="false" data-view="terminal">Terminal output</button>
+      </div>
+      <div class="actions">
+        <button type="button" id="copy-md" class="ghost">Copy Markdown</button>
+        <button type="button" id="dl-json" class="ghost">Download JSON</button>
+      </div>
+    </div>
+
+    <div id="view-columns">
+      <div id="findings" class="findings"></div>
+      <div class="table-wrap">
+        <table class="cols">
+          <thead><tr>
+            <th class="num">#</th><th>column</th><th>type</th><th class="num">nulls</th><th class="num">distinct</th>
+            <th class="num">min</th><th class="num">median</th><th class="num">max</th><th>shape</th>
+          </tr></thead>
+          <tbody id="col-body"></tbody>
+        </table>
+      </div>
+      <p class="hint muted">Click a column for quantiles, top values and details. <span class="approx">~</span> marks a sketch estimate.</p>
+    </div>
+
+    <pre id="view-terminal" class="terminal" hidden></pre>
+  </section>
+
+  <section class="how">
+    <div>
+      <h2>One pass, bounded memory</h2>
+      <p>Each column keeps fixed-size streaming summaries rather than its values: <b>HyperLogLog</b> for distinct counts,
+        a <b>KLL sketch</b> for quantiles and histograms, <b>Misra-Gries</b> for the most common values, and
+        <b>Welford</b> for mean and spread. Small columns stay exact; large ones switch to sketches with known error.</p>
+    </div>
+    <div>
+      <h2>Streams from disk, even here</h2>
+      <p>A Web Worker hands the WebAssembly module one slice of your file at a time through <code>FileReaderSync</code>,
+        so a multi-gigabyte export is profiled with a few megabytes of memory. Gzip is decompressed on the fly.</p>
+    </div>
+    <div>
+      <h2>Same engine as the CLI</h2>
+      <p>On the command line it streams at about 290 MiB/s on all cores and can fail a CI job when data looks wrong:</p>
+      <pre class="cmd">parakh --fail-on-warn export.csv.gz</pre>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <span>Built with Zig 0.17 · MIT licensed</span>
+  <a href="https://github.com/SAMARTHJAISWAL">by Samarth Jaiswal</a>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

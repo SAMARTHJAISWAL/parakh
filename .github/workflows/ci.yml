@@ -28,6 +28,9 @@ jobs:
         run: zig build test --summary all
       - name: Tests under ReleaseSafe
         run: zig build test -Doptimize=ReleaseSafe
+      - name: Build the WebAssembly demo
+        if: runner.os == 'Linux'
+        run: zig build wasm
       - name: Smoke test the CLI
         shell: bash
         run: |

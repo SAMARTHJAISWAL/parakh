@@ -538,6 +538,9 @@ fn delimiterName(arena: std.mem.Allocator, d: u8) ![]const u8 {
 
 // ------------------------------------------------------------ parallel
 
+/// Freestanding targets (the browser build) profile on the calling thread.
+const has_threads = !@import("builtin").single_threaded and @import("builtin").os.tag != .freestanding;
+
 /// A batch of rows copied out of the parser: one byte arena plus offsets.
 const Batch = struct {
     bytes: std.ArrayList(u8) = .empty,
@@ -681,8 +684,8 @@ pub fn profileReader(gpa: std.mem.Allocator, arena: std.mem.Allocator, reader: *
     var profiler = Profiler.init(gpa, options);
     defer profiler.deinit();
 
-    if (options.io) |io| {
-        try runParallel(&profiler, &parser, io, options);
+    if (options.io != null and comptime has_threads) {
+        try runParallel(&profiler, &parser, options.io.?, options);
     } else {
         while (try parser.next()) |record| try profiler.addRecord(record);
     }
