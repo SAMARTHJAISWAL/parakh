@@ -1,0 +1,14 @@
+.{
+    .name = .parakh,
+    .version = "0.1.0",
+    .fingerprint = 0x53f1609975a58308, // Changing this has security and trust implications.
+    .minimum_zig_version = "0.17.1",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "LICENSE",
+        "README.md",
+    },
+}

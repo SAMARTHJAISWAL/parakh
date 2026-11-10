@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.17.1
+      - name: Format check
+        if: runner.os == 'Linux'
+        run: zig fmt --check src tests build.zig build.zig.zon
+      - name: Unit and end-to-end tests
+        run: zig build test --summary all
+      - name: Tests under ReleaseSafe
+        run: zig build test -Doptimize=ReleaseSafe
+      - name: Smoke test the CLI
+        shell: bash
+        run: |
+          zig build -Doptimize=ReleaseFast
+          ./zig-out/bin/parakh --version
+          ./zig-out/bin/parakh tests/fixtures/messy_orders.csv
+          ./zig-out/bin/parakh -f json tests/fixtures/messy_orders.csv > profile.json
+          gzip -c tests/fixtures/messy_orders.csv | ./zig-out/bin/parakh -f markdown
+          # --fail-on-warn must exit 2 on a file with warnings
+          set +e; ./zig-out/bin/parakh --fail-on-warn tests/fixtures/messy_orders.csv > /dev/null; code=$?; set -e
+          test "$code" -eq 2
+
+  cross:
+    name: cross-compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.17.1
+      - name: Build for every release target
+        run: |
+          for t in x86_64-linux-musl aarch64-linux-musl x86_64-macos aarch64-macos x86_64-windows aarch64-windows; do
+            zig build -Dtarget=$t -Doptimize=ReleaseFast -Dstrip=true --prefix out/$t
+          done
+          ls -l out/*/bin
+
+  bench:
+    name: benchmark (1M rows)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.17.1
+      - run: zig build -Doptimize=ReleaseFast
+      - run: python3 bench/generate.py 1000000 > orders.csv
+      - name: Profile 1M rows
+        run: |
+          /usr/bin/time -v ./zig-out/bin/parakh --color never orders.csv 2> time.txt
+          grep -E "Elapsed|Maximum resident" time.txt

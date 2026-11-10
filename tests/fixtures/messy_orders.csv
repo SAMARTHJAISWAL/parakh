@@ -1,0 +1,14 @@
+﻿order_id,customer,region,amount,currency,ordered_at,shipped,notes
+1001,"Sharma, Priya",North,1250.50,INR,2024-01-03,true,
+1002,Rahul Verma,South,980,INR,2024-01-04,false,"fragile, handle with care"
+1003,"Iyer, Anand", South ,N/A,INR,2024-01-04,true,"line one
+line two"
+1004,Meera Nair,East,15000,INR,2024-01-05,yes,
+1005,"Das, Rohan",West,742.25,INR,2024-01-07,no,"said ""ok"""
+1006,Kavya Rao,North,3100,INR,2024-01-09,true,
+1007,Arjun Mehta,North,pending,INR,2024-01-11,false,
+1008,Sana Khan,East,2210.75,INR,2024-01-12,true,
+1009,Vikram Singh,South,450,INR,2024-01-15,true,
+1010,Neha Gupta,West,1875,INR,2024-01-18,false,
+1011,Ishaan Bose,North,6400,INR,2024-01-20,true,extra,field
+1012,Tara Pillai,East,1325.5,INR,2024-01-22,true,

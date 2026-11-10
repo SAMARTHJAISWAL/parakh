@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.17.1
+      - run: zig build test
+      - name: Cross-compile release binaries
+        run: |
+          mkdir dist
+          for t in x86_64-linux-musl aarch64-linux-musl x86_64-macos aarch64-macos x86_64-windows aarch64-windows; do
+            zig build -Dtarget=$t -Doptimize=ReleaseFast -Dstrip=true --prefix out/$t
+            name=parakh-${GITHUB_REF_NAME}-$t
+            if [[ $t == *windows* ]]; then
+              (cd out/$t/bin && zip -q ../../../dist/$name.zip parakh.exe)
+            else
+              tar -C out/$t/bin -czf dist/$name.tar.gz parakh
+            fi
+          done
+          (cd dist && sha256sum * > SHA256SUMS)
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*
+          generate_release_notes: true
