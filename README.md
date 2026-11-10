@@ -236,6 +236,24 @@ embedded newline, doubled quotes, a ragged row, a semicolon-delimited file and a
 CI runs the suite on Linux, macOS and Windows, cross-compiles all six release targets, and profiles a
 1M-row file on every push.
 
+## Alternatives
+
+parakh is not the first data profiler, and for many jobs another tool is the better pick. Here is how it
+compares, so you can choose.
+
+| Tool | Reach for it when | How parakh differs |
+| --- | --- | --- |
+| [**qsv**](https://github.com/dathere/qsv) `stats` | You want a mature, very fast CSV toolkit with dozens of commands beyond profiling. | qsv has far more features. parakh does only profiling, and keeps memory fixed by using sketches for every statistic rather than holding values. |
+| [**DuckDB**](https://duckdb.org/docs/stable/guides/meta/summarize) `SUMMARIZE` | You already use DuckDB, or want to query the data with SQL right after looking at it. | DuckDB also uses approximate distinct counts and quantiles, and runs in the browser too. parakh adds value-level type anomalies, ready-made findings and a CI exit code, in a single binary under 500 KB instead of a database engine. |
+| [**fg-data-profiling**](https://github.com/Data-Centric-AI-Community/fg-data-profiling) (formerly ydata-profiling / pandas-profiling) | You want a rich HTML report with correlations, interactions and plots, and the data fits in memory. | Much deeper analysis. parakh trades that depth for streaming any file size with a few MB of memory. |
+| [**csvkit**](https://github.com/wireservice/csvkit) `csvstat` | You want simple per-column statistics from a Python tool you may already have installed. | parakh is built for files too big to hold in memory, and adds data-quality findings and gzip input. |
+| [**Great Expectations**](https://github.com/fivetran/great_expectations), [**Soda**](https://github.com/sodadata/soda-core) | You know the rules your data must follow and want them versioned, scheduled and reported. | Those check rules you write. parakh writes no rules: it infers likely problems from the data, which suits a first look or a lightweight CI gate. |
+| [**VisiData**](https://github.com/saulpw/visidata) | You want to explore a file interactively in the terminal. | parakh is a one-shot report for scripts and CI, not an interactive viewer. |
+
+parakh combines four things that each exist elsewhere: memory that stays fixed no matter how big the file is,
+type anomalies reported with examples, a zero-configuration `--fail-on-warn` gate, and the same engine
+streaming files locally in the browser.
+
 ## Limitations
 
 - Dates are recognised in ISO-8601 form (`2024-01-31`, `2024/01/31`, `2024-01-31T09:30:00Z`).
